@@ -9,7 +9,7 @@ import { sendAssignmentOverdueEmail } from "@/lib/email";
 export async function GET(request: NextRequest) {
   try {
     const appUrl = getAppUrl(request);
-    const activeUser = await getActiveUser();
+    const activeUser = await getActiveUser(request);
     if (!activeUser) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
     // 2. Fetch scheduled/active meetings (sorted by scheduledAt)
     const meetings = await db.collection("meetings")
-      .find({ hubId: hubObjectId })
+      .find({ hubId: hubObjectId, status: { $ne: "ended" } })
       .sort({ scheduledAt: 1 })
       .toArray();
 

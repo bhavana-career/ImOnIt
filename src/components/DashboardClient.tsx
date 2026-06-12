@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   LayoutDashboard, 
@@ -42,6 +42,45 @@ import {
   TrendingUp,
   PlusCircle
 } from "lucide-react";
+
+if (typeof window !== "undefined") {
+  const originalFetch = window.fetch;
+  window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeAccount = urlParams.get("account");
+
+    if (activeAccount) {
+      let targetInput = input;
+      try {
+        const urlString = typeof input === "string" ? input : (input instanceof Request ? input.url : input.toString());
+        if (urlString.startsWith("/") || urlString.includes(window.location.origin)) {
+          const url = new URL(urlString, window.location.origin);
+          if (!url.searchParams.has("account")) {
+            url.searchParams.set("account", activeAccount);
+          }
+          targetInput = url.toString();
+        }
+      } catch (e) {}
+
+      const headers = new Headers(init?.headers);
+      if (!headers.has("x-active-account")) {
+        headers.set("x-active-account", activeAccount);
+      }
+
+      const headersObj: Record<string, string> = {};
+      headers.forEach((value, key) => {
+        headersObj[key] = value;
+      });
+
+      return originalFetch(targetInput, {
+        ...init,
+        headers: headersObj,
+      });
+    }
+
+    return originalFetch(input, init);
+  };
+}
 
 function getInitials(name?: string): string {
   if (!name) return "?";
@@ -232,41 +271,6 @@ interface DashboardClientProps {
 }
 
 export default function DashboardClient({ user, initialMessage, activeAccount }: DashboardClientProps) {
-  // Inject x-active-account header and query param automatically into all fetch calls in this tab
-  useEffect(() => {
-    if (!activeAccount) return;
-
-    const originalFetch = window.fetch;
-    window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-      let targetInput = input;
-      try {
-        const urlString = typeof input === "string" ? input : (input instanceof Request ? input.url : input.toString());
-        if (urlString.startsWith("/") || urlString.includes(window.location.origin)) {
-          const url = new URL(urlString, window.location.origin);
-          if (!url.searchParams.has("account")) {
-            url.searchParams.set("account", activeAccount);
-          }
-          targetInput = url.toString();
-        }
-      } catch (e) {
-        // Fallback to original input
-      }
-
-      const headers = new Headers(init?.headers);
-      if (!headers.has("x-active-account")) {
-        headers.set("x-active-account", activeAccount);
-      }
-      return originalFetch(targetInput, {
-        ...init,
-        headers,
-      });
-    };
-
-    return () => {
-      window.fetch = originalFetch;
-    };
-  }, [activeAccount]);
-
   // Tabs
   const [activeTab, setActiveTab] = useState<"dashboard" | "owned-hubs" | "member-hubs" | "pending-hubs" | "profile" | "settings">("dashboard");
 
@@ -386,6 +390,83 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
   const [localAudioEnabled, setLocalAudioEnabled] = useState(true);
   const [localVideoEnabled, setLocalVideoEnabled] = useState(true);
   const [screenShareEnabled, setScreenShareEnabled] = useState(false);
+  const localVideoRef = useRef<HTMLVideoElement | null>(null);
+  const screenShareVideoRef = useRef<HTMLVideoElement | null>(null);
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const startCamera = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 320, height: 240, frameRate: 15 },
+          audio: false
+        });
+        if (active) {
+          setLocalStream(stream);
+        } else {
+          stream.getTracks().forEach(track => track.stop());
+        }
+      } catch (err) {
+        console.error("Error accessing camera:", err);
+      }
+    };
+    if (meetingStatus === "connected" && localVideoEnabled) {
+      startCamera();
+    } else {
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        setLocalStream(null);
+      }
+    }
+    return () => { active = false; };
+  }, [meetingStatus, localVideoEnabled]);
+
+  useEffect(() => {
+    if (localVideoRef.current && localStream) {
+      localVideoRef.current.srcObject = localStream;
+    }
+  }, [localStream, localVideoRef.current]);
+
+  useEffect(() => {
+    let active = true;
+    const startScreenShare = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+          audio: false
+        });
+        stream.getVideoTracks()[0].onended = () => {
+          setScreenShareEnabled(false);
+        };
+        if (active) {
+          setScreenStream(stream);
+        } else {
+          stream.getTracks().forEach(track => track.stop());
+        }
+      } catch (err) {
+        console.error("Error accessing screen share:", err);
+        setScreenShareEnabled(false);
+      }
+    };
+    if (meetingStatus === "connected" && screenShareEnabled) {
+      startScreenShare();
+    } else {
+      if (screenStream) {
+        screenStream.getTracks().forEach(track => track.stop());
+        setScreenStream(null);
+      }
+    }
+    return () => { active = false; };
+  }, [meetingStatus, screenShareEnabled]);
+
+  useEffect(() => {
+    if (screenShareVideoRef.current && screenStream) {
+      screenShareVideoRef.current.srcObject = screenStream;
+    }
+  }, [screenStream, screenShareVideoRef.current]);
+
   const [transcriptChunks, setTranscriptChunks] = useState<Array<{ speaker: string; text: string }>>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisDraft, setAnalysisDraft] = useState<any | null>(null);
@@ -1814,49 +1895,75 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
                           )}
 
                           <div className="flex items-center justify-between z-10">
-                            <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">Local User (Host)</span>
+                            <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">Local User! (Host)</span>
                             <span className="flex items-center gap-1">
                               {!localAudioEnabled && <MicOff className="w-4 h-4 text-red-500" />}
                               {!localVideoEnabled && <VideoOff className="w-4 h-4 text-red-500" />}
                             </span>
                           </div>
 
+                          {localVideoEnabled && localStream ? (
+                            <div className="absolute inset-0 z-0">
+                              <video
+                                ref={localVideoRef}
+                                autoPlay
+                                playsInline
+                                muted
+                                className="w-full h-full object-cover transform -scale-x-100"
+                              />
+                            </div>
+                          ) : null}
+
                           <div className="flex flex-col items-center justify-center flex-1 py-4 z-10">
-                            {localVideoEnabled ? (
-                              <div className="w-24 h-24 rounded-full bg-slate-900 flex items-center justify-center border border-slate-800 shadow-md">
-                                <Video className="w-8 h-8 text-primary animate-pulse" />
-                              </div>
-                            ) : (
-                              <div className="w-20 h-20 rounded-full bg-red-500/10 text-primary border border-red-500/20 flex items-center justify-center font-extrabold text-xl shadow-md">
+                            {(!localVideoEnabled || !localStream) && (
+                              <div className="w-20 h-20 rounded-full bg-red-500/10 text-primary border border-red-500/20 flex items-center justify-center font-extrabold text-xl shadow-md mb-3">
                                 {getInitials(user.name)}
                               </div>
                             )}
-                            <span className="block font-black text-sm text-slate-200 mt-3">{user.name}</span>
-                            <span className="block text-3xs text-slate-500 font-semibold mt-0.5">{user.email}</span>
+                            <span className="block font-black text-xs text-slate-200 mt-1 bg-slate-950/70 px-2 py-0.5 rounded-lg select-text">{user.name}</span>
+                            <span className="block text-[10px] text-slate-400 font-semibold mt-0.5 bg-slate-950/70 px-2 py-0.5 rounded-lg select-text">{user.email}</span>
                           </div>
 
-                          <div className="flex items-center gap-1.5 text-3xs font-extrabold uppercase tracking-wider text-slate-400 z-10">
+                          <div className="flex items-center gap-1.5 text-3xs font-extrabold uppercase tracking-wider text-slate-450 z-10 bg-slate-950/70 px-2 py-0.5 rounded-md self-start">
                             <span className="w-2 h-2 rounded-full bg-emerald-500" />
                             Connected
                           </div>
                         </div>
 
-                        {/* Box 2: Guest/Mock Participant Box */}
-                        <div className="p-6 rounded-3xl border border-slate-200/60 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 flex flex-col justify-between min-h-[260px] relative overflow-hidden shadow-inner select-none">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-bold tracking-wider text-slate-400 dark:text-slate-500 uppercase">Remote Participant</span>
-                          </div>
+                        {/* Box 2: Guest/Mock Participant Box or Screen Share */}
+                        <div className="p-6 rounded-3xl border border-slate-200/60 dark:border-slate-800 bg-slate-950 text-white flex flex-col justify-between min-h-[260px] relative overflow-hidden shadow-inner group">
+                          {screenShareEnabled && screenStream ? (
+                            <>
+                              <div className="flex items-center justify-between z-10 bg-slate-950/70 px-2 py-0.5 rounded-md self-start">
+                                <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">Your Shared Screen</span>
+                              </div>
+                              <div className="absolute inset-0 z-0 bg-black">
+                                <video
+                                  ref={screenShareVideoRef}
+                                  autoPlay
+                                  playsInline
+                                  className="w-full h-full object-contain"
+                                />
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold tracking-wider text-slate-400 dark:text-slate-500 uppercase">Remote Participant</span>
+                              </div>
 
-                          <div className="flex flex-col items-center justify-center flex-1 py-4 text-slate-400 dark:text-slate-600">
-                            <Users className="w-12 h-12 mb-3 opacity-60" />
-                            <span className="block font-bold text-xs">Waiting for participants...</span>
-                            <span className="block text-3xs text-slate-500 mt-1">Share the Hub credentials or send invitations to join.</span>
-                          </div>
+                              <div className="flex flex-col items-center justify-center flex-1 py-4 text-slate-400 dark:text-slate-650">
+                                <Users className="w-12 h-12 mb-3 opacity-60 text-slate-500" />
+                                <span className="block font-bold text-xs">Waiting for participants...</span>
+                                <span className="block text-3xs text-slate-500 mt-1">Share the Hub credentials or send invitations to join.</span>
+                              </div>
 
-                          <div className="flex items-center gap-1.5 text-3xs font-extrabold uppercase tracking-wider text-slate-400">
-                            <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-700" />
-                            Disconnected
-                          </div>
+                              <div className="flex items-center gap-1.5 text-3xs font-extrabold uppercase tracking-wider text-slate-450 bg-slate-950/70 px-2 py-0.5 rounded-md self-start">
+                                <span className="w-2 h-2 rounded-full bg-slate-500" />
+                                Disconnected
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
 

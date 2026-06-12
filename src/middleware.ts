@@ -69,7 +69,23 @@ export function middleware(request: NextRequest) {
     if (!searchParams.get("account")) {
       const url = request.nextUrl.clone();
       url.searchParams.set("account", accountId);
-      return NextResponse.redirect(url);
+      const response = NextResponse.redirect(url);
+      response.cookies.set("active_account", accountId, {
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 30 * 24 * 60 * 60,
+      });
+      return response;
+    } else {
+      const response = NextResponse.next();
+      response.cookies.set("active_account", accountId, {
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 30 * 24 * 60 * 60,
+      });
+      return response;
     }
   }
 

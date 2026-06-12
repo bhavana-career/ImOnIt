@@ -16,7 +16,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "I'm On It Bruh — AI Accountability Platform",
+  title: "I'm On It Bruh",
   description: "AI-powered execution & accountability platform converting meeting commitments into verified tasks.",
 };
 
