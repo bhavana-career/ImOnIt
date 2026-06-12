@@ -3,9 +3,11 @@ import { getDb } from "@/lib/db";
 import { getActiveUser } from "@/lib/session";
 import { sendSubmissionApprovedEmail, sendSubmissionRejectedEmail } from "@/lib/email";
 import { ObjectId } from "mongodb";
+import { getAppUrl } from "@/lib/utils";
 
 export async function POST(request: NextRequest) {
   try {
+    const appUrl = getAppUrl(request);
     const activeUser = await getActiveUser();
     if (!activeUser) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
@@ -124,7 +126,7 @@ export async function POST(request: NextRequest) {
             hubName: hub.hubName,
             meetingTitle: vaultMeeting.title,
             task: submission.task,
-            dashboardLink: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard`,
+            dashboardLink: `${appUrl}/dashboard`,
           });
         } else {
           await sendSubmissionRejectedEmail({
@@ -134,7 +136,7 @@ export async function POST(request: NextRequest) {
             meetingTitle: vaultMeeting.title,
             task: submission.task,
             feedback: feedback.trim(),
-            dashboardLink: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard`,
+            dashboardLink: `${appUrl}/dashboard`,
           });
         }
       } catch (emailErr) {

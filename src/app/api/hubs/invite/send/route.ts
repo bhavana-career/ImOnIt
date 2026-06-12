@@ -4,6 +4,7 @@ import { getActiveUser } from "@/lib/session";
 import { sendInvitationEmail } from "@/lib/email";
 import { ObjectId } from "mongodb";
 import crypto from "crypto";
+import { getAppUrl } from "@/lib/utils";
 
 export async function POST(request: NextRequest) {
   try {
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
     });
 
     // 4. Send email
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const appUrl = getAppUrl(request);
     const inviteLink = `${appUrl}/invitation?token=${token}`;
 
     await sendInvitationEmail({

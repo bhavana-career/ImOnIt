@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getActiveUser } from "@/lib/session";
 import { ObjectId } from "mongodb";
+import { getAppUrl } from "@/lib/utils";
 
 import { sendAssignmentOverdueEmail } from "@/lib/email";
 
 export async function GET(request: NextRequest) {
   try {
+    const appUrl = getAppUrl(request);
     const activeUser = await getActiveUser();
     if (!activeUser) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
@@ -102,7 +104,7 @@ export async function GET(request: NextRequest) {
                   meetingTitle: vr.title,
                   task: assign.task,
                   deadline: assign.deadline,
-                  dashboardLink: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard`,
+                  dashboardLink: `${appUrl}/dashboard`,
                 });
               } catch (e) {
                 console.error("Failed to send overdue email to member", e);
@@ -133,7 +135,7 @@ export async function GET(request: NextRequest) {
                   meetingTitle: vr.title,
                   task: assign.task,
                   deadline: assign.deadline,
-                  dashboardLink: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard`,
+                  dashboardLink: `${appUrl}/dashboard`,
                 });
               } catch (e) {
                 console.error("Failed to send overdue email to owner", e);

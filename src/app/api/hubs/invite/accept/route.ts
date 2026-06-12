@@ -3,6 +3,7 @@ import { getDb } from "@/lib/db";
 import { getActiveUser } from "@/lib/session";
 import { sendJoinRequestEmail } from "@/lib/email";
 import { ObjectId } from "mongodb";
+import { getAppUrl } from "@/lib/utils";
 
 export async function POST(request: NextRequest) {
   try {
@@ -111,7 +112,7 @@ export async function POST(request: NextRequest) {
       });
 
       // 4b. Send Email Notification to Owner
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      const appUrl = getAppUrl(request);
       const dashboardLink = `${appUrl}/dashboard`;
 
       await sendJoinRequestEmail({

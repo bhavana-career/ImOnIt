@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { createSession } from "@/lib/session";
+import { getAppUrl } from "@/lib/utils";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
   const error = searchParams.get("error");
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const appUrl = getAppUrl(request);
 
   if (error) {
     return NextResponse.redirect(`${appUrl}/auth?error=${encodeURIComponent(error)}`);

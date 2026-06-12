@@ -1,4 +1,5 @@
 import sgMail from "@sendgrid/mail";
+import { getAppUrl } from "./utils";
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
 
@@ -487,7 +488,7 @@ export async function sendSubmissionAlertEmail({
     <p>Please log in to your dashboard to review this submission.</p>
     
     <div style="text-align: center; margin: 28px 0;">
-      <a href="${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard" style="background-color: ${BRAND_COLOR}; color: #ffffff; padding: 12px 32px; font-size: 14px; font-weight: 700; text-decoration: none; border-radius: 50px; display: inline-block; box-shadow: 0 4px 6px rgba(220, 38, 38, 0.15); font-family: 'Outfit', sans-serif;">
+      <a href="${getAppUrl()}/dashboard" style="background-color: ${BRAND_COLOR}; color: #ffffff; padding: 12px 32px; font-size: 14px; font-weight: 700; text-decoration: none; border-radius: 50px; display: inline-block; box-shadow: 0 4px 6px rgba(220, 38, 38, 0.15); font-family: 'Outfit', sans-serif;">
         Review Submission
       </a>
     </div>
