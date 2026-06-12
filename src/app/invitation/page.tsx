@@ -110,7 +110,9 @@ function InvitationContent() {
           <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 mx-auto mb-4">
             <CheckCircle className="w-5 h-5" />
           </div>
-          <h3 className="font-extrabold text-base text-slate-900 dark:text-white mb-2">Join Request Submitted</h3>
+          <h3 className="font-extrabold text-base text-slate-900 dark:text-white mb-2">
+            {successMsg === "You are already a member of this Hub." ? "Already a Member" : "Join Request Submitted"}
+          </h3>
           
           <div className="my-5 p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-left text-xs font-semibold space-y-2">
             <div>
@@ -119,15 +121,15 @@ function InvitationContent() {
             </div>
             <div>
               <span className="block text-3xs text-slate-400 dark:text-slate-500 uppercase font-bold tracking-wider">Status</span>
-              <span className="inline-flex items-center gap-1.5 text-amber-500 font-extrabold mt-0.5">
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                Pending Approval
+              <span className={`inline-flex items-center gap-1.5 font-extrabold mt-0.5 ${successMsg === "You are already a member of this Hub." ? "text-emerald-500" : "text-amber-500"}`}>
+                <span className={`w-2 h-2 rounded-full ${successMsg === "You are already a member of this Hub." ? "bg-emerald-500" : "bg-amber-500 animate-pulse"}`} />
+                {successMsg === "You are already a member of this Hub." ? "Active Member" : "Pending Approval"}
               </span>
             </div>
           </div>
 
           <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-6 font-semibold">
-            Your request is waiting for Owner approval.
+            {successMsg}
           </p>
 
           <div className="flex flex-col gap-3">
