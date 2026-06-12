@@ -71,7 +71,17 @@ export default function Header({ activeAccount }: HeaderProps) {
       if (res.ok) {
         const data = await res.json();
         setUser(data.user);
-        setAccounts(data.accounts || []);
+        
+        // Deduplicate accounts array by unique ID before storing in state
+        const rawAccounts: AccountItem[] = data.accounts || [];
+        const uniqueAccountsMap = new Map<string, AccountItem>();
+        rawAccounts.forEach(acc => {
+          if (!uniqueAccountsMap.has(acc.id)) {
+            uniqueAccountsMap.set(acc.id, acc);
+          }
+        });
+        
+        setAccounts(Array.from(uniqueAccountsMap.values()));
       } else {
         setUser(null);
         setAccounts([]);

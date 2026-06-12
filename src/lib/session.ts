@@ -28,8 +28,37 @@ export async function getUserAccounts(): Promise<Array<{ id: string; email: stri
   const cookieStore = await cookies();
   const raw = cookieStore.get("user_accounts")?.value;
   if (!raw) return [];
+  
   try {
-    return JSON.parse(raw);
+    const parsedAccounts = JSON.parse(raw);
+    if (!Array.isArray(parsedAccounts)) return [];
+    
+    // Cross-reference with DB to purge deleted accounts
+    const db = await getDb();
+    const objectIds = parsedAccounts.map(acc => {
+      try { return new ObjectId(acc.id); } catch { return null; }
+    }).filter(Boolean);
+
+    if (objectIds.length === 0) return [];
+
+    const validUsers = await db.collection("users").find({
+      _id: { $in: objectIds }
+    }).toArray();
+
+    const validIds = new Set(validUsers.map(u => u._id.toString()));
+    const validAccounts = parsedAccounts.filter(acc => validIds.has(acc.id));
+
+    // If stale accounts were found, update the cookie silently
+    if (validAccounts.length !== parsedAccounts.length) {
+      cookieStore.set("user_accounts", JSON.stringify(validAccounts), {
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 30 * 24 * 60 * 60,
+      });
+    }
+
+    return validAccounts;
   } catch {
     return [];
   }
@@ -41,22 +70,37 @@ export function getGravatarUrl(email: string): string {
 }
 
 export async function getActiveAccountId(request?: Request | any): Promise<string | null> {
+  let logUrlParam: string | null = null;
+  let logHeader: string | null = null;
+  
   // 1. Try to read from direct request if provided
   if (request) {
     if (typeof request === "string") return request;
     if (typeof request.headers?.get === "function") {
       const headerAccount = request.headers.get("x-active-account") || request.headers.get("X-Active-Account");
-      if (headerAccount) return headerAccount;
+      if (headerAccount) {
+        logHeader = headerAccount;
+        console.log("Account Resolution Log:", { urlAccount: logUrlParam, headerAccount: logHeader, cookieAccount: null, resolvedAccount: headerAccount });
+        return headerAccount;
+      }
     }
     if (request.headers && typeof request.headers === "object") {
       const headerAccount = request.headers["x-active-account"] || request.headers["X-Active-Account"] || request.headers["x-active-account".toLowerCase()];
-      if (headerAccount) return headerAccount;
+      if (headerAccount) {
+        logHeader = headerAccount;
+        console.log("Account Resolution Log:", { urlAccount: logUrlParam, headerAccount: logHeader, cookieAccount: null, resolvedAccount: headerAccount });
+        return headerAccount;
+      }
     }
     if (request.url) {
       try {
         const url = new URL(request.url);
         const accountParam = url.searchParams.get("account");
-        if (accountParam) return accountParam;
+        if (accountParam) {
+          logUrlParam = accountParam;
+          console.log("Account Resolution Log:", { urlAccount: logUrlParam, headerAccount: logHeader, cookieAccount: null, resolvedAccount: accountParam });
+          return accountParam;
+        }
       } catch {}
     }
   }
@@ -65,21 +109,31 @@ export async function getActiveAccountId(request?: Request | any): Promise<strin
   try {
     const headersList = await headers();
     const headerAccount = headersList.get("x-active-account") || headersList.get("X-Active-Account");
-    if (headerAccount) return headerAccount;
+    if (headerAccount) {
+      logHeader = headerAccount;
+      console.log("Account Resolution Log:", { urlAccount: logUrlParam, headerAccount: logHeader, cookieAccount: null, resolvedAccount: headerAccount });
+      return headerAccount;
+    }
 
     const referer = headersList.get("referer") || headersList.get("Referer");
     if (referer) {
       try {
         const url = new URL(referer);
         const accountParam = url.searchParams.get("account");
-        if (accountParam) return accountParam;
+        if (accountParam) {
+          logUrlParam = accountParam;
+          console.log("Account Resolution Log:", { urlAccount: logUrlParam, headerAccount: logHeader, cookieAccount: null, resolvedAccount: accountParam });
+          return accountParam;
+        }
       } catch {}
     }
   } catch {}
 
   // 3. Fallback to active_account cookie
   const cookieStore = await cookies();
-  return cookieStore.get("active_account")?.value || null;
+  const cookieAccount = cookieStore.get("active_account")?.value || null;
+  console.log("Account Resolution Log:", { urlAccount: logUrlParam, headerAccount: logHeader, cookieAccount, resolvedAccount: cookieAccount });
+  return cookieAccount;
 }
 
 export async function getActiveUser(request?: any) {
