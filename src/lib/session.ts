@@ -35,9 +35,9 @@ export async function getUserAccounts(): Promise<Array<{ id: string; email: stri
     
     // Cross-reference with DB to purge deleted accounts
     const db = await getDb();
-    const objectIds = parsedAccounts.map(acc => {
+    const objectIds: ObjectId[] = parsedAccounts.map((acc: any) => {
       try { return new ObjectId(acc.id); } catch { return null; }
-    }).filter(Boolean);
+    }).filter((id: ObjectId | null): id is ObjectId => id !== null);
 
     if (objectIds.length === 0) return [];
 
