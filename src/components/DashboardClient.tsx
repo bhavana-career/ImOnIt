@@ -4613,14 +4613,21 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
                   </div>
                 ) : (
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold">
-                      ?
-                    </div>
+                    <img 
+                      src={`https://unavatar.io/${inviteEmail}?fallback=https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp`} 
+                      alt="Profile" 
+                      className="w-10 h-10 rounded-full object-cover border border-slate-200 dark:border-slate-800" 
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = `https://www.gravatar.com/avatar/${inviteEmail}?d=mp`;
+                      }}
+                    />
                     <div>
-                      <span className="block text-xs font-extrabold text-slate-800 dark:text-slate-200">User not registered</span>
+                      <span className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 capitalize">
+                        {inviteEmail.split('@')[0].replace(/[._-]/g, ' ')}
+                      </span>
                       <span className="block text-3xs text-slate-400 dark:text-slate-500 font-mono mt-0.5">{inviteEmail}</span>
                     </div>
-                    <span className="ml-auto px-2 py-0.5 rounded bg-amber-505/10 text-amber-600 border border-amber-505/10 text-3xs font-extrabold uppercase tracking-wide">
+                    <span className="ml-auto px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 border border-amber-500/10 text-3xs font-extrabold uppercase tracking-wide">
                       Unregistered
                     </span>
                   </div>
