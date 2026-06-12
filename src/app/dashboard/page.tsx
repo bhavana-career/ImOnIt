@@ -9,11 +9,14 @@ interface PageProps {
 }
 
 export default async function DashboardPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const activeAccount = typeof params.account === "string" ? params.account : "";
+
   let user = null;
   let expiredMessage = "";
 
   try {
-    user = await getActiveUser();
+    user = await getActiveUser(activeAccount);
   } catch (err: any) {
     if (err.message && err.message.includes("Session expired")) {
       expiredMessage = err.message;
@@ -28,13 +31,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     redirect("/");
   }
 
-  const params = await searchParams;
   const welcomeMessage = typeof params.message === "string" ? params.message : "";
 
   return (
     <div className="min-h-screen flex flex-col relative bg-background text-foreground">
-      <Header />
-      <DashboardClient user={user} initialMessage={welcomeMessage} />
+      <Header activeAccount={activeAccount} />
+      <DashboardClient user={user} initialMessage={welcomeMessage} activeAccount={activeAccount} />
     </div>
   );
 }

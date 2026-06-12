@@ -228,9 +228,31 @@ interface HubItem {
 interface DashboardClientProps {
   user: UserProfile;
   initialMessage?: string;
+  activeAccount?: string;
 }
 
-export default function DashboardClient({ user, initialMessage }: DashboardClientProps) {
+export default function DashboardClient({ user, initialMessage, activeAccount }: DashboardClientProps) {
+  // Inject x-active-account header automatically into all fetch calls in this tab
+  useEffect(() => {
+    if (!activeAccount) return;
+
+    const originalFetch = window.fetch;
+    window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const headers = new Headers(init?.headers);
+      if (!headers.has("x-active-account")) {
+        headers.set("x-active-account", activeAccount);
+      }
+      return originalFetch(input, {
+        ...init,
+        headers,
+      });
+    };
+
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, [activeAccount]);
+
   // Tabs
   const [activeTab, setActiveTab] = useState<"dashboard" | "owned-hubs" | "member-hubs" | "pending-hubs" | "profile" | "settings">("dashboard");
 

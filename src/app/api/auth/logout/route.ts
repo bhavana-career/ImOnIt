@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getActiveEmail, removeAccountFromSession } from "@/lib/session";
+import { getActiveAccountId, removeAccountFromSession } from "@/lib/session";
 
 export async function POST(request: NextRequest) {
   try {
-    const activeEmail = await getActiveEmail();
-    if (activeEmail) {
-      await removeAccountFromSession(activeEmail);
+    const activeAccountId = await getActiveAccountId(request);
+    if (activeAccountId) {
+      await removeAccountFromSession(activeAccountId);
     }
     
     return NextResponse.json({ success: true, message: "Logged out successfully" });

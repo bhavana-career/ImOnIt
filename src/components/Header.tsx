@@ -14,6 +14,7 @@ interface UserProfile {
 }
 
 interface AccountItem {
+  id: string;
   email: string;
   name: string;
   image: string | null;
@@ -41,7 +42,11 @@ function getInitials(name?: string): string {
   return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
 }
 
-export default function Header() {
+interface HeaderProps {
+  activeAccount?: string;
+}
+
+export default function Header({ activeAccount }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [accounts, setAccounts] = useState<AccountItem[]>([]);
@@ -58,7 +63,11 @@ export default function Header() {
 
   const fetchSession = async () => {
     try {
-      const res = await fetch("/api/auth/me");
+      const res = await fetch("/api/auth/me", {
+        headers: {
+          "x-active-account": activeAccount || "",
+        },
+      });
       if (res.ok) {
         const data = await res.json();
         setUser(data.user);
@@ -77,7 +86,11 @@ export default function Header() {
 
   const fetchNotifications = async () => {
     try {
-      const res = await fetch("/api/notifications");
+      const res = await fetch("/api/notifications", {
+        headers: {
+          "x-active-account": activeAccount || "",
+        },
+      });
       if (res.ok) {
         const data = await res.json();
         setNotifications(data.notifications || []);
@@ -100,7 +113,7 @@ export default function Header() {
     return () => {
       window.removeEventListener("refresh_notifications", handleRefresh);
     };
-  }, []);
+  }, [activeAccount]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -129,7 +142,10 @@ export default function Header() {
     try {
       const res = await fetch("/api/notifications", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-active-account": activeAccount || "",
+        },
         body: JSON.stringify({ notificationId: id }),
       });
       if (res.ok) {
@@ -145,7 +161,10 @@ export default function Header() {
     try {
       const res = await fetch("/api/notifications", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-active-account": activeAccount || "",
+        },
       });
       if (res.ok) {
         fetchNotifications();
@@ -156,30 +175,23 @@ export default function Header() {
     }
   };
 
-  const handleSwitch = async (email: string) => {
-    try {
-      const res = await fetch("/api/auth/switch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      if (res.ok) {
-        setDropdownOpen(false);
-        window.location.href = "/dashboard";
-      }
-    } catch (err) {
-      console.error("Failed to switch account:", err);
-    }
+  const handleSwitch = (accountId: string) => {
+    setDropdownOpen(false);
+    window.open(`/dashboard?account=${accountId}`, "_blank");
   };
 
   const handleLogout = async () => {
     try {
       const res = await fetch("/api/auth/logout", {
         method: "POST",
+        headers: {
+          "x-active-account": activeAccount || "",
+        },
       });
       if (res.ok) {
         setUser(null);
         setDropdownOpen(false);
+        // Force refresh or redirect to home page
         window.location.href = "/";
       }
     } catch (err) {
@@ -341,19 +353,19 @@ export default function Header() {
                   </div>
                 </div>
 
-                {/* Account Switcher Section */}
+                 {/* Account Switcher Section */}
                 <div className="px-4 py-2">
                   <span className="text-[10px] font-bold tracking-wider text-slate-400 dark:text-slate-500 uppercase">
                     Accounts
                   </span>
                   <div className="mt-1.5 space-y-1 max-h-48 overflow-y-auto">
                     {accounts.map((acc) => {
-                      const isActive = acc.email.toLowerCase() === user.email.toLowerCase();
+                      const isActive = acc.id === user.id;
                       return (
                         <button
-                          key={acc.email}
+                          key={acc.id}
                           disabled={isActive}
-                          onClick={() => handleSwitch(acc.email)}
+                          onClick={() => handleSwitch(acc.id)}
                           className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-all ${
                             isActive
                               ? "bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/80 cursor-default"
@@ -373,9 +385,16 @@ export default function Header() {
                               </div>
                             )}
                             <div className="overflow-hidden">
-                              <span className="block font-medium text-xs text-slate-900 dark:text-white truncate">
-                                {acc.name}
-                              </span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="block font-medium text-xs text-slate-900 dark:text-white truncate">
+                                  {acc.name}
+                                </span>
+                                {isActive && (
+                                  <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 text-[8px] font-black uppercase tracking-wider">
+                                    Active
+                                  </span>
+                                )}
+                              </div>
                               <span className="block text-[10px] text-slate-500 dark:text-slate-400 truncate font-mono">
                                 {acc.email}
                               </span>
@@ -396,10 +415,18 @@ export default function Header() {
                 <div className="px-2 space-y-0.5">
                   <button
                     onClick={handleAddAccount}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/60 transition-all cursor-pointer"
+                    disabled={accounts.length >= 3}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/60 disabled:opacity-50 disabled:hover:bg-transparent transition-all cursor-pointer disabled:cursor-not-allowed"
                   >
-                    <Plus className="w-4 h-4 text-slate-500" />
-                    Add Account
+                    <div className="flex items-center gap-2.5">
+                      <Plus className="w-4 h-4 text-slate-500" />
+                      Add Account
+                    </div>
+                    {accounts.length >= 3 && (
+                      <span className="text-[9px] font-bold text-amber-500 px-1 py-0.5 rounded bg-amber-500/10">
+                        Max 3
+                      </span>
+                    )}
                   </button>
 
                   <button

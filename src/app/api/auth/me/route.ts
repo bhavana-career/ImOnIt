@@ -3,7 +3,7 @@ import { getActiveUser, getUserAccounts } from "@/lib/session";
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await getActiveUser();
+    const user = await getActiveUser(request);
     const accounts = await getUserAccounts();
     
     return NextResponse.json({
