@@ -51,31 +51,68 @@ if (typeof window !== "undefined") {
 
     if (activeAccount) {
       let targetInput = input;
-      try {
-        const urlString = typeof input === "string" ? input : (input instanceof Request ? input.url : input.toString());
-        if (urlString.startsWith("/") || urlString.includes(window.location.origin)) {
-          const url = new URL(urlString, window.location.origin);
-          if (!url.searchParams.has("account")) {
-            url.searchParams.set("account", activeAccount);
-          }
-          targetInput = url.toString();
+      let headers: Headers;
+
+      if (input instanceof Request) {
+        headers = new Headers(input.headers);
+        if (!headers.has("x-active-account")) {
+          headers.set("x-active-account", activeAccount);
         }
-      } catch (e) {}
+        
+        try {
+          const urlString = input.url;
+          if (urlString.startsWith("/") || urlString.includes(window.location.origin)) {
+            const url = new URL(urlString, window.location.origin);
+            if (!url.searchParams.has("account")) {
+              url.searchParams.set("account", activeAccount);
+            }
+            // Create a new Request object from the original one but with new URL and headers
+            targetInput = new Request(url.toString(), {
+              method: input.method,
+              headers: headers,
+              body: input.body,
+              referrer: input.referrer,
+              referrerPolicy: input.referrerPolicy,
+              mode: input.mode,
+              credentials: input.credentials,
+              cache: input.cache,
+              redirect: input.redirect,
+              integrity: input.integrity,
+              keepalive: input.keepalive,
+              signal: input.signal,
+            });
+          }
+        } catch (e) {}
+        
+        return originalFetch(targetInput, init);
+      } else {
+        // Input is string or URL
+        try {
+          const urlString = typeof input === "string" ? input : input.toString();
+          if (urlString.startsWith("/") || urlString.includes(window.location.origin)) {
+            const url = new URL(urlString, window.location.origin);
+            if (!url.searchParams.has("account")) {
+              url.searchParams.set("account", activeAccount);
+            }
+            targetInput = url.toString();
+          }
+        } catch (e) {}
 
-      const headers = new Headers(init?.headers);
-      if (!headers.has("x-active-account")) {
-        headers.set("x-active-account", activeAccount);
+        headers = new Headers(init?.headers);
+        if (!headers.has("x-active-account")) {
+          headers.set("x-active-account", activeAccount);
+        }
+
+        const headersObj: Record<string, string> = {};
+        headers.forEach((value, key) => {
+          headersObj[key] = value;
+        });
+
+        return originalFetch(targetInput, {
+          ...init,
+          headers: headersObj,
+        });
       }
-
-      const headersObj: Record<string, string> = {};
-      headers.forEach((value, key) => {
-        headersObj[key] = value;
-      });
-
-      return originalFetch(targetInput, {
-        ...init,
-        headers: headersObj,
-      });
     }
 
     return originalFetch(input, init);
@@ -1252,6 +1289,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
 
     setIsAnalyzing(true);
     setShowReviewScreen(false);
+    fetchMeetings(openedHub.id);
 
     try {
       const res = await fetch("/api/meetings/analyze", {

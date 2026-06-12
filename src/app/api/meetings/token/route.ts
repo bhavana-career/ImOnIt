@@ -6,7 +6,7 @@ import { SignJWT } from "jose";
 
 export async function GET(request: NextRequest) {
   try {
-    const activeUser = await getActiveUser();
+    const activeUser = await getActiveUser(request);
     if (!activeUser) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
@@ -24,6 +24,13 @@ export async function GET(request: NextRequest) {
     const meeting = await db.collection("meetings").findOne({ _id: meetingObjectId });
     if (!meeting) {
       return NextResponse.json({ error: "Meeting not found." }, { status: 404 });
+    }
+
+    if (meeting.status === "scheduled") {
+      await db.collection("meetings").updateOne(
+        { _id: meetingObjectId },
+        { $set: { status: "active" } }
+      );
     }
 
     // 2. Verify user membership in this Hub

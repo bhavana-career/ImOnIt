@@ -5,7 +5,7 @@ import { ObjectId } from "mongodb";
 
 export async function POST(request: NextRequest) {
   try {
-    const activeUser = await getActiveUser();
+    const activeUser = await getActiveUser(request);
     if (!activeUser) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       hubId: meeting.hubId,
       userId: userObjectId,
       role: "owner",
-      status: "approved",
+      status: { $in: ["Approved", "approved"] },
     });
 
     if (!membership) {

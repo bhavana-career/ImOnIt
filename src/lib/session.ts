@@ -45,7 +45,11 @@ export async function getActiveAccountId(request?: Request | any): Promise<strin
   if (request) {
     if (typeof request === "string") return request;
     if (typeof request.headers?.get === "function") {
-      const headerAccount = request.headers.get("x-active-account");
+      const headerAccount = request.headers.get("x-active-account") || request.headers.get("X-Active-Account");
+      if (headerAccount) return headerAccount;
+    }
+    if (request.headers && typeof request.headers === "object") {
+      const headerAccount = request.headers["x-active-account"] || request.headers["X-Active-Account"] || request.headers["x-active-account".toLowerCase()];
       if (headerAccount) return headerAccount;
     }
     if (request.url) {
@@ -60,10 +64,10 @@ export async function getActiveAccountId(request?: Request | any): Promise<strin
   // 2. Try to read from global headers list
   try {
     const headersList = await headers();
-    const headerAccount = headersList.get("x-active-account");
+    const headerAccount = headersList.get("x-active-account") || headersList.get("X-Active-Account");
     if (headerAccount) return headerAccount;
 
-    const referer = headersList.get("referer");
+    const referer = headersList.get("referer") || headersList.get("Referer");
     if (referer) {
       try {
         const url = new URL(referer);
