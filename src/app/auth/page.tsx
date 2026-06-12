@@ -11,6 +11,7 @@ function AuthContent() {
   const oauthError = searchParams.get("error");
 
   const [view, setView] = useState<"register" | "login" | "otp">("login");
+  const [authMode, setAuthMode] = useState<"register" | "login">("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [otpCode, setOtpCode] = useState("");
@@ -41,14 +42,17 @@ function AuthContent() {
     setShowDuplicateError(false);
     setShowNotFoundError(false);
 
+    const currentMode = view === "register" ? "register" : "login";
+    setAuthMode(currentMode);
+
     try {
       const res = await fetch("/api/auth/otp/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
-          name: view === "register" ? name : undefined,
-          mode: view,
+          name: currentMode === "register" ? name : undefined,
+          mode: currentMode,
         }),
       });
 
@@ -91,7 +95,7 @@ function AuthContent() {
         body: JSON.stringify({
           email,
           code: otpCode,
-          mode: view,
+          mode: authMode,
         }),
       });
 
@@ -129,8 +133,8 @@ function AuthContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
-          name: view === "register" ? name : undefined,
-          mode: view,
+          name: authMode === "register" ? name : undefined,
+          mode: authMode,
         }),
       });
 
@@ -453,7 +457,7 @@ function AuthContent() {
               <div className="mt-8 text-center">
                 <button
                   onClick={() => {
-                    setView("login");
+                    setView(authMode);
                     setErrorMsg("");
                     setSuccessMsg("");
                     setOtpCode("");
