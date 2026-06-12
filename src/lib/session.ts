@@ -130,6 +130,12 @@ export async function getActiveUser(request?: any) {
     return null;
   }
 
+  // Temporary server logs for debugging
+  console.log("Requested Account ID:", request && typeof request === "string" ? request : (request?.headers?.get?.("x-active-account") || ""));
+  console.log("Resolved Account ID:", accountId);
+  console.log("Loaded User:", user.name);
+  console.log("User Email:", user.email);
+
   return {
     id: user._id.toString(),
     name: user.name,

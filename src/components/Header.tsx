@@ -63,7 +63,7 @@ export default function Header({ activeAccount }: HeaderProps) {
 
   const fetchSession = async () => {
     try {
-      const res = await fetch("/api/auth/me", {
+      const res = await fetch(`/api/auth/me?account=${activeAccount || ""}`, {
         headers: {
           "x-active-account": activeAccount || "",
         },
@@ -86,7 +86,7 @@ export default function Header({ activeAccount }: HeaderProps) {
 
   const fetchNotifications = async () => {
     try {
-      const res = await fetch("/api/notifications", {
+      const res = await fetch(`/api/notifications?account=${activeAccount || ""}`, {
         headers: {
           "x-active-account": activeAccount || "",
         },
@@ -140,7 +140,7 @@ export default function Header({ activeAccount }: HeaderProps) {
 
   const handleMarkAsRead = async (id: string) => {
     try {
-      const res = await fetch("/api/notifications", {
+      const res = await fetch(`/api/notifications?account=${activeAccount || ""}`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -159,7 +159,7 @@ export default function Header({ activeAccount }: HeaderProps) {
 
   const handleMarkAllAsRead = async () => {
     try {
-      const res = await fetch("/api/notifications", {
+      const res = await fetch(`/api/notifications?account=${activeAccount || ""}`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -182,7 +182,7 @@ export default function Header({ activeAccount }: HeaderProps) {
 
   const handleLogout = async () => {
     try {
-      const res = await fetch("/api/auth/logout", {
+      const res = await fetch(`/api/auth/logout?account=${activeAccount || ""}`, {
         method: "POST",
         headers: {
           "x-active-account": activeAccount || "",

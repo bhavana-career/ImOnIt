@@ -232,17 +232,31 @@ interface DashboardClientProps {
 }
 
 export default function DashboardClient({ user, initialMessage, activeAccount }: DashboardClientProps) {
-  // Inject x-active-account header automatically into all fetch calls in this tab
+  // Inject x-active-account header and query param automatically into all fetch calls in this tab
   useEffect(() => {
     if (!activeAccount) return;
 
     const originalFetch = window.fetch;
     window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      let targetInput = input;
+      try {
+        const urlString = typeof input === "string" ? input : (input instanceof Request ? input.url : input.toString());
+        if (urlString.startsWith("/") || urlString.includes(window.location.origin)) {
+          const url = new URL(urlString, window.location.origin);
+          if (!url.searchParams.has("account")) {
+            url.searchParams.set("account", activeAccount);
+          }
+          targetInput = url.toString();
+        }
+      } catch (e) {
+        // Fallback to original input
+      }
+
       const headers = new Headers(init?.headers);
       if (!headers.has("x-active-account")) {
         headers.set("x-active-account", activeAccount);
       }
-      return originalFetch(input, {
+      return originalFetch(targetInput, {
         ...init,
         headers,
       });
@@ -3680,14 +3694,9 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
                       {getInitials(user.name)}
                     </div>
                   )}
-                  <div>
                     <h1 className="text-2xl font-black tracking-tight text-slate-905 dark:text-white leading-tight">
-                      Welcome, {user.name}
+                      Welcome, {user.name}!
                     </h1>
-                    <p className="text-2xs text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider mt-0.5">
-                      Platform Dashboard Account
-                    </p>
-                  </div>
                 </div>
 
                 {/* Create Hub Card Trigger */}
