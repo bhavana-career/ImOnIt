@@ -299,6 +299,7 @@ interface HubItem {
   vaultStatus: "Protected" | "Unprotected";
   hubImage: string | null;
   actualRole?: string;
+  googleApiKey?: string;
 }
 
 interface DashboardClientProps {
@@ -310,6 +311,16 @@ interface DashboardClientProps {
 export default function DashboardClient({ user, initialMessage, activeAccount }: DashboardClientProps) {
   // Tabs
   const [activeTab, setActiveTab] = useState<"dashboard" | "owned-hubs" | "member-hubs" | "pending-hubs" | "profile" | "settings">("dashboard");
+
+  const apiFetch = (input: RequestInfo | URL, init?: RequestInit) => {
+    return fetch(input, {
+      ...init,
+      headers: {
+        ...(init?.headers || {}),
+        "x-active-account": activeAccount || "",
+      },
+    });
+  };
 
   // Hub lists
   const [ownedHubs, setOwnedHubs] = useState<HubItem[]>([]);
@@ -342,6 +353,9 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
   const [editImage, setEditImage] = useState("");
+  const [editGoogleApiKey, setEditGoogleApiKey] = useState("");
+  const [aiStatus, setAiStatus] = useState("Loading...");
+  const [loadingAiStatus, setLoadingAiStatus] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsError, setSettingsError] = useState("");
   const [settingsSuccess, setSettingsSuccess] = useState(false);
@@ -557,7 +571,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
 
   const fetchAgentHistory = async (hubId: string) => {
     try {
-      const res = await fetch(`/api/agent/history?hubId=${hubId}`);
+      const res = await apiFetch(`/api/agent/history?hubId=${hubId}`);
       if (res.ok) {
         const data = await res.json();
         setAgentMessages(data.messages || []);
@@ -577,7 +591,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
     setAgentLoading(true);
 
     try {
-      const res = await fetch("/api/agent/chat", {
+      const res = await apiFetch("/api/agent/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -606,7 +620,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
   const fetchMeetings = async (hubId: string) => {
     setLoadingMeetings(true);
     try {
-      const res = await fetch(`/api/meetings/list?hubId=${hubId}`);
+      const res = await apiFetch(`/api/meetings/list?hubId=${hubId}`);
       if (res.ok) {
         const data = await res.json();
         setMeetings(data.meetings || []);
@@ -620,10 +634,28 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
     }
   };
 
+  const fetchAiStatus = async (hubId: string) => {
+    setLoadingAiStatus(true);
+    setAiStatus("Loading...");
+    try {
+      const res = await apiFetch(`/api/hubs/ai-status?hubId=${hubId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setAiStatus(data.status || "Fallback Analysis Mode");
+      } else {
+        setAiStatus("Fallback Analysis Mode");
+      }
+    } catch {
+      setAiStatus("Fallback Analysis Mode");
+    } finally {
+      setLoadingAiStatus(false);
+    }
+  };
+
   const fetchHubs = async () => {
     setLoadingHubs(true);
     try {
-      const res = await fetch("/api/hubs");
+      const res = await apiFetch("/api/hubs");
       if (res.ok) {
         const data = await res.json();
         setOwnedHubs(data.ownedHubs || []);
@@ -650,11 +682,13 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
       setEditName(openedHub.name);
       setEditDesc(openedHub.description || "");
       setEditImage(openedHub.hubImage || "");
+      setEditGoogleApiKey(openedHub.googleApiKey || "");
       setSettingsError("");
       setSettingsSuccess(false);
       fetchMembers(openedHub.id);
       fetchMeetings(openedHub.id);
       fetchAgentHistory(openedHub.id);
+      fetchAiStatus(openedHub.id);
     }
   }, [openedHub]);
 
@@ -676,7 +710,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
     setLoadingMembers(true);
     setMembersError("");
     try {
-      const res = await fetch(`/api/hubs/members?hubId=${hubId}`);
+      const res = await apiFetch(`/api/hubs/members?hubId=${hubId}`);
       if (res.ok) {
         const data = await res.json();
         setHubMembers({
@@ -707,7 +741,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
     setLookupSearched(false);
 
     try {
-      const res = await fetch("/api/hubs/invite/lookup", {
+      const res = await apiFetch("/api/hubs/invite/lookup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: inviteEmail }),
@@ -737,7 +771,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
     setInviteSuccess("");
 
     try {
-      const res = await fetch("/api/hubs/invite/send", {
+      const res = await apiFetch("/api/hubs/invite/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -775,7 +809,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isOpen: false }));
         try {
-          const res = await fetch("/api/hubs/members/approve", {
+          const res = await apiFetch("/api/hubs/members/approve", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ hubId: openedHub.id, userId }),
@@ -803,7 +837,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isOpen: false }));
         try {
-          const res = await fetch("/api/hubs/members/reject", {
+          const res = await apiFetch("/api/hubs/members/reject", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ hubId: openedHub.id, userId }),
@@ -831,7 +865,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isOpen: false }));
         try {
-          const res = await fetch("/api/hubs/invite/resend", {
+          const res = await apiFetch("/api/hubs/invite/resend", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ hubId: openedHub.id, email }),
@@ -858,7 +892,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isOpen: false }));
         try {
-          const res = await fetch("/api/hubs/invite/revoke", {
+          const res = await apiFetch("/api/hubs/invite/revoke", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ hubId: openedHub.id, email }),
@@ -885,7 +919,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isOpen: false }));
         try {
-          const res = await fetch("/api/hubs/members/remove", {
+          const res = await apiFetch("/api/hubs/members/remove", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ hubId: openedHub.id, userId }),
@@ -912,7 +946,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isOpen: false }));
         try {
-          const res = await fetch("/api/hubs/members/leave", {
+          const res = await apiFetch("/api/hubs/members/leave", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ hubId: openedHub.id }),
@@ -939,7 +973,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
     setProfileSuccess("");
 
     try {
-      const res = await fetch("/api/auth/profile/update", {
+      const res = await apiFetch("/api/auth/profile/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -972,7 +1006,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
     setSettingsSuccess(false);
 
     try {
-      const res = await fetch("/api/hubs/edit", {
+      const res = await apiFetch("/api/hubs/edit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -980,14 +1014,27 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
           name: editName,
           description: editDesc,
           hubImage: editImage,
+          googleApiKey: editGoogleApiKey,
         }),
       });
 
       const data = await res.json();
       if (res.ok) {
         setSettingsSuccess(true);
-        setOpenedHub(prev => prev ? { ...prev, name: editName, description: editDesc, hubImage: editImage } : null);
+        let updatedMaskedKey = editGoogleApiKey;
+        if (editGoogleApiKey && !editGoogleApiKey.includes("*")) {
+          updatedMaskedKey = editGoogleApiKey.slice(0, 6) + "********" + editGoogleApiKey.slice(-4);
+        }
+        setEditGoogleApiKey(updatedMaskedKey);
+        setOpenedHub(prev => prev ? { 
+          ...prev, 
+          name: editName, 
+          description: editDesc, 
+          hubImage: editImage,
+          googleApiKey: updatedMaskedKey 
+        } : null);
         fetchHubs();
+        fetchAiStatus(openedHub.id);
       } else {
         setSettingsError(data.error || "Failed to update settings.");
       }
@@ -1007,7 +1054,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isOpen: false }));
         try {
-          const res = await fetch("/api/hubs/delete/request", {
+          const res = await apiFetch("/api/hubs/delete/request", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ hubId: openedHub.id }),
@@ -1034,7 +1081,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
     setDeleteOtpError("");
 
     try {
-      const res = await fetch("/api/hubs/delete/confirm", {
+      const res = await apiFetch("/api/hubs/delete/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ hubId: openedHub.id, otp: deleteOtpCode }),
@@ -1062,7 +1109,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
     setCreatingHubSpinner(true);
 
     try {
-      const res = await fetch("/api/hubs/create", {
+      const res = await apiFetch("/api/hubs/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1144,7 +1191,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
         const text = event.results[resultIndex][0].transcript;
         if (text && text.trim().length > 0) {
           try {
-            await fetch("/api/meetings/transcript/append", {
+            await apiFetch("/api/meetings/transcript/append", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -1193,7 +1240,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
     setSchedulingSpinner(true);
 
     try {
-      const res = await fetch("/api/meetings/schedule", {
+      const res = await apiFetch("/api/meetings/schedule", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1233,7 +1280,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
     setMeetingTimer(0);
 
     try {
-      const res = await fetch(`/api/meetings/token?meetingId=${meeting.id}`);
+      const res = await apiFetch(`/api/meetings/token?meetingId=${meeting.id}`);
       const data = await res.json();
 
       if (res.ok) {
@@ -1278,7 +1325,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
     setMeetingStatus("ended");
 
     try {
-      await fetch("/api/meetings/end", {
+      await apiFetch("/api/meetings/end", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ meetingId: activeMeeting.id }),
@@ -1292,7 +1339,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
     fetchMeetings(openedHub.id);
 
     try {
-      const res = await fetch("/api/meetings/analyze", {
+      const res = await apiFetch("/api/meetings/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ meetingId: activeMeeting.id }),
@@ -1342,7 +1389,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
     if (!activeMeeting || !openedHub) return;
 
     try {
-      const res = await fetch("/api/meetings/approve", {
+      const res = await apiFetch("/api/meetings/approve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1379,7 +1426,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
     setSubmitError("");
 
     try {
-      const res = await fetch("/api/meetings/submit", {
+      const res = await apiFetch("/api/meetings/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1423,7 +1470,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
     setReviewError("");
 
     try {
-      const res = await fetch("/api/meetings/review-submission", {
+      const res = await apiFetch("/api/meetings/review-submission", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1464,7 +1511,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
     setUpdatingRecordError("");
 
     try {
-      const res = await fetch("/api/meetings/update-record", {
+      const res = await apiFetch("/api/meetings/update-record", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1504,7 +1551,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
     setUnlockingSpinner(true);
 
     try {
-      const res = await fetch("/api/hubs/vault/unlock", {
+      const res = await apiFetch("/api/hubs/vault/unlock", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1538,7 +1585,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
     setUnlockingSpinner(true);
 
     try {
-      const res = await fetch("/api/hubs/vault/recover", {
+      const res = await apiFetch("/api/hubs/vault/recover", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -3021,7 +3068,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
                                                 setConfirmDialog(prev => ({ ...prev, isOpen: false }));
                                                 setReviewSpinner(true);
                                                 try {
-                                                  const res = await fetch("/api/meetings/review-submission", {
+                                                  const res = await apiFetch("/api/meetings/review-submission", {
                                                     method: "POST",
                                                     headers: { "Content-Type": "application/json" },
                                                     body: JSON.stringify({
@@ -3775,7 +3822,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
                       />
                     </div>
 
-                    <div>
+                     <div>
                       <label className="block text-[10px] font-bold tracking-wider text-slate-400 dark:text-slate-500 uppercase mb-2">Hub Logo Image URL</label>
                       <input
                         type="url"
@@ -3786,38 +3833,87 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
                       />
                     </div>
 
+                    <div>
+                      <label className="block text-[10px] font-bold tracking-wider text-slate-400 dark:text-slate-500 uppercase mb-2">Google Gemini API Key</label>
+                      <input
+                        type="password"
+                        value={editGoogleApiKey}
+                        onChange={(e) => setEditGoogleApiKey(e.target.value)}
+                        placeholder="AIzaSy..."
+                        className="w-full px-4 py-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-sm focus:outline-none focus:border-red-500 font-mono"
+                      />
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-1">Configure your own Gemini 1.5 Pro API Key. This will be encrypted before saving.</p>
+                    </div>
+
                     <button
                       type="submit"
                       disabled={savingSettings || !editName.trim()}
                       className="w-full py-3.5 rounded-2xl bg-primary hover:opacity-90 text-white font-bold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
                     >
                       {savingSettings ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-                      Save Branding
+                      Save Branding & Keys
                     </button>
                   </form>
                 </div>
 
-                {/* Destructive Card (Only Owner role) */}
-                {openedHub.actualRole === "owner" && (
-                  <div className="p-8 rounded-3xl border border-red-500/10 bg-white dark:bg-slate-950 shadow-sm flex flex-col justify-between">
+                {/* Right Column: AI Status & Danger Zone */}
+                <div className="flex flex-col gap-6">
+                  {/* AI Status Card */}
+                  <div className="p-8 rounded-3xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm flex flex-col gap-4 animate-in fade-in">
                     <div>
-                      <h3 className="font-extrabold text-base text-red-600 dark:text-red-400">Danger Zone</h3>
-                      <p className="text-2xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">Permanently delete this Hub workspace and all associated secure storages.</p>
-                      
-                      <div className="mt-5 p-4 rounded-2xl bg-red-500/10 border border-red-505/20 text-3xs text-red-700 dark:text-red-400 leading-normal font-semibold">
-                        ⚠️ <strong>Warning:</strong> This action is permanent and cannot be undone. All vault storages, invitations, and member accesses will be deleted instantly.
-                      </div>
+                      <h3 className="font-extrabold text-base text-slate-955 dark:text-white">AI Engine Status</h3>
+                      <p className="text-2xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">Check current AI connection and intelligence mode.</p>
                     </div>
 
-                    <button
-                      onClick={handleRequestDeleteHub}
-                      className="w-full mt-6 py-3.5 rounded-2xl bg-red-650 hover:bg-red-700 text-white font-bold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Delete Hub Workspace
-                    </button>
+                    <div className="flex items-center gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
+                      <div className={`w-3.5 h-3.5 rounded-full animate-pulse ${
+                        aiStatus === "Connected (Gemini Active)" 
+                          ? "bg-emerald-500" 
+                          : aiStatus === "Invalid API Key" 
+                          ? "bg-rose-500" 
+                          : aiStatus === "Loading..."
+                          ? "bg-amber-500"
+                          : "bg-blue-500"
+                      }`} />
+                      <div>
+                        <span className="text-xs font-extrabold text-slate-850 dark:text-slate-100">
+                          {aiStatus}
+                        </span>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5 leading-normal">
+                          {aiStatus === "Connected (Gemini Active)" 
+                            ? "Hub is utilizing native Gemini 1.5 Pro AI for meeting summaries & chats." 
+                            : aiStatus === "Invalid API Key" 
+                            ? "The saved Google API Key returned an error. Review your API configuration." 
+                            : aiStatus === "Loading..."
+                            ? "Testing connection to Google Gemini API..."
+                            : "No API key configured. Utilizing local semantic analysis and parsing engine."}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                )}
+
+                  {/* Destructive Card (Only Owner role) */}
+                  {openedHub.actualRole === "owner" && (
+                    <div className="p-8 rounded-3xl border border-red-500/10 bg-white dark:bg-slate-950 shadow-sm flex flex-col justify-between">
+                      <div>
+                        <h3 className="font-extrabold text-base text-red-600 dark:text-red-400">Danger Zone</h3>
+                        <p className="text-2xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">Permanently delete this Hub workspace and all associated secure storages.</p>
+                        
+                        <div className="mt-5 p-4 rounded-2xl bg-red-500/10 border border-red-505/20 text-3xs text-red-700 dark:text-red-400 leading-normal font-semibold">
+                          ⚠️ <strong>Warning:</strong> This action is permanent and cannot be undone. All vault storages, invitations, and member accesses will be deleted instantly.
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={handleRequestDeleteHub}
+                        className="w-full mt-6 py-3.5 rounded-2xl bg-red-650 hover:bg-red-700 text-white font-bold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete Hub Workspace
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

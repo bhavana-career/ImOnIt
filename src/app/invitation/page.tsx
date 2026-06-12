@@ -8,6 +8,7 @@ function InvitationContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get("token");
+  const accountId = searchParams.get("account") || "";
 
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
@@ -23,7 +24,9 @@ function InvitationContent() {
 
     const verifyAndAccept = async () => {
       try {
-        const meRes = await fetch("/api/auth/me");
+        const meRes = await fetch("/api/auth/me", {
+          headers: { "x-active-account": accountId }
+        });
         if (!meRes.ok) {
           document.cookie = `invite_token=${token}; path=/; max-age=3600; SameSite=Lax`;
           router.push("/auth?message=" + encodeURIComponent("Please sign in or register to join the Hub."));
@@ -39,7 +42,10 @@ function InvitationContent() {
 
         const acceptRes = await fetch("/api/hubs/invite/accept", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "x-active-account": accountId
+          },
           body: JSON.stringify({ token }),
         });
 

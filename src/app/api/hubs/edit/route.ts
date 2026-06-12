@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getActiveUser } from "@/lib/session";
 import { ObjectId } from "mongodb";
+import { encrypt } from "@/lib/crypto";
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,7 +11,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
 
-    const { hubId, name, description, hubImage } = await request.json();
+    const { hubId, name, description, hubImage, googleApiKey } = await request.json();
 
     if (!hubId || !name || !name.trim()) {
       return NextResponse.json({ error: "Hub ID and Hub Name are required." }, { status: 400 });
@@ -33,14 +34,25 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Update Hub details
+    const updateFields: any = {
+      hubName: name.trim(),
+      hubDescription: description ? description.trim() : "",
+      hubImage: hubImage || null,
+    };
+
+    if (googleApiKey !== undefined) {
+      const trimmedKey = googleApiKey.trim();
+      if (trimmedKey === "") {
+        updateFields.googleApiKey = null;
+      } else if (!trimmedKey.includes("*")) {
+        updateFields.googleApiKey = encrypt(trimmedKey);
+      }
+    }
+
     const result = await db.collection("hubs").updateOne(
       { _id: hubObjectId },
       {
-        $set: {
-          hubName: name.trim(),
-          hubDescription: description ? description.trim() : "",
-          hubImage: hubImage || null,
-        }
+        $set: updateFields
       }
     );
 
@@ -55,3 +67,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: err.message || "Failed to update Hub." }, { status: 500 });
   }
 }
+

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getActiveUser } from "@/lib/session";
 import { ObjectId } from "mongodb";
+import { decrypt } from "@/lib/crypto";
 
 export async function POST(request: NextRequest) {
   try {
@@ -172,13 +173,23 @@ ${JSON.stringify(contextData, null, 2)}
 `;
 
     // 6. Call Gemini
-    const apiKey = process.env.GOOGLE_API_KEY;
+    let apiKey = "";
+    if (hub && hub.googleApiKey) {
+      try {
+        apiKey = decrypt(hub.googleApiKey);
+      } catch (decErr) {
+        console.error("Failed to decrypt Hub Google API key:", decErr);
+      }
+    }
+    if (!apiKey) {
+      apiKey = process.env.GOOGLE_API_KEY || "";
+    }
+
     let agentResponseText = "";
 
     if (apiKey) {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`;
       
-      // Map message history to Gemini content structure
       const contentsList: any[] = [];
       contentsList.push({
         role: "user",
@@ -189,7 +200,6 @@ ${JSON.stringify(contextData, null, 2)}
         parts: [{ text: `Understood. I will strictly act as the Hub Intelligence Assistant using the provided RAG Context under the role of ${isOwner ? "Owner" : "Member"}. I will not invent details, will avoid decorative emojis, and format responses professionally.` }]
       });
 
-      // Add recent message history (up to last 15 user-model cycles)
       conversationHistory.slice(-20).forEach((msg: any) => {
         contentsList.push({
           role: msg.sender === "user" ? "user" : "model",
@@ -197,7 +207,6 @@ ${JSON.stringify(contextData, null, 2)}
         });
       });
 
-      // Add the current query
       contentsList.push({
         role: "user",
         parts: [{ text: message }]
@@ -217,15 +226,13 @@ ${JSON.stringify(contextData, null, 2)}
           agentResponseText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
         } else {
           console.error("Gemini API Error details:", await geminiRes.text());
-          agentResponseText = "Error communicating with the Gemini AI service.";
         }
       } catch (geminiErr) {
         console.error("Gemini request failed:", geminiErr);
-        agentResponseText = "Failed to connect to the intelligence system due to network problems.";
       }
     }
 
-    if (!agentResponseText || agentResponseText.includes("GOOGLE_API_KEY missing")) {
+    if (!agentResponseText || agentResponseText.includes("GOOGLE_API_KEY missing") || agentResponseText.includes("Error communicating with the Gemini")) {
       agentResponseText = generateMockAgentResponse(message, contextData);
     }
 

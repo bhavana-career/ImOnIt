@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getActiveUser } from "@/lib/session";
 import { ObjectId } from "mongodb";
+import { decrypt, maskApiKey } from "@/lib/crypto";
 
 export async function GET(request: NextRequest) {
   try {
@@ -40,21 +41,28 @@ export async function GET(request: NextRequest) {
       const hub = hubMap.get(membership.hubId.toString());
       if (!hub) continue;
 
-      const hubData = {
+      const isOwner = membership.role === "owner";
+      const hubData: any = {
         id: hub._id.toString(),
         name: hub.hubName,
         description: hub.hubDescription || "",
         hubImage: hub.hubImage || null,
         createdAt: hub.createdAt,
-        role: membership.role === "owner" ? "Owner" : "Member",
+        role: isOwner ? "Owner" : "Member",
         actualRole: membership.role,
         vaultStatus: protectedHubIds.has(hub._id.toString()) ? "Protected" : "Unprotected",
         status: membership.status,
       };
 
+      if (isOwner) {
+        const encryptedKey = hub.googleApiKey || "";
+        const decryptedKey = decrypt(encryptedKey);
+        hubData.googleApiKey = maskApiKey(decryptedKey);
+      }
+
       const mStatus = membership.status?.toLowerCase();
       if (mStatus === "approved") {
-        if (membership.role === "owner") {
+        if (isOwner) {
           ownedHubs.push(hubData);
         } else {
           memberHubs.push(hubData);
