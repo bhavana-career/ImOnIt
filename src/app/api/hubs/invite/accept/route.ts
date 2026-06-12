@@ -23,11 +23,47 @@ export async function POST(request: NextRequest) {
     // 1. Find the invitation
     const invitation = await db.collection("invitations").findOne({
       token: token,
-      status: "sent",
     });
 
     if (!invitation) {
-      return NextResponse.json({ error: "Invalid or expired invitation token." }, { status: 404 });
+      return NextResponse.json({ error: "Invalid invitation token." }, { status: 404 });
+    }
+
+    if (invitation.status === "expired") {
+      return NextResponse.json({ error: "This invitation has expired." }, { status: 400 });
+    }
+
+    // Fetch Hub details
+    const hub = await db.collection("hubs").findOne({ _id: invitation.hubId });
+    if (!hub) {
+      return NextResponse.json({ error: "Associated Hub not found." }, { status: 404 });
+    }
+
+    // If invitation is already processed, check membership status and return success
+    if (invitation.status !== "sent") {
+      const existingMembership = await db.collection("memberships").findOne({
+        hubId: invitation.hubId,
+        userId: userObjectId,
+      });
+
+      if (existingMembership) {
+        const statusLower = existingMembership.status?.toLowerCase();
+        if (statusLower === "approved") {
+          return NextResponse.json({
+            success: true,
+            message: "You are already a member of this Hub.",
+            hubId: hub._id.toString(),
+            hubName: hub.hubName,
+          });
+        }
+      }
+      
+      return NextResponse.json({
+        success: true,
+        message: "Your request is already pending Owner approval.",
+        hubId: hub._id.toString(),
+        hubName: hub.hubName,
+      });
     }
 
     // Check expiration (7 days)
@@ -40,11 +76,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "This invitation has expired." }, { status: 400 });
     }
 
-    // Fetch Hub details
-    const hub = await db.collection("hubs").findOne({ _id: invitation.hubId });
-    if (!hub) {
-      return NextResponse.json({ error: "Associated Hub not found." }, { status: 404 });
-    }
+
 
     // 2. Link invitation to user and update status
     await db.collection("invitations").updateOne(
