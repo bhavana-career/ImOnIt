@@ -4,7 +4,7 @@ import { getActiveUser } from "@/lib/session";
 
 export async function POST(request: NextRequest) {
   try {
-    const activeUser = await getActiveUser();
+    const activeUser = await getActiveUser(request);
     if (!activeUser) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }

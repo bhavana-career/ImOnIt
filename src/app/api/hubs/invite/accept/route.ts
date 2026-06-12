@@ -7,7 +7,7 @@ import { getAppUrl } from "@/lib/utils";
 
 export async function POST(request: NextRequest) {
   try {
-    const activeUser = await getActiveUser();
+    const activeUser = await getActiveUser(request);
     if (!activeUser) {
       return NextResponse.json({ error: "Unauthorized. Please log in first." }, { status: 401 });
     }

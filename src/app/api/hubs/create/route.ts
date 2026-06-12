@@ -12,7 +12,7 @@ function generateRecoveryCode(): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getActiveUser();
+    const user = await getActiveUser(request);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized. Please sign in again." }, { status: 401 });
     }

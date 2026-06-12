@@ -5,7 +5,7 @@ import { ObjectId } from "mongodb";
 
 export async function GET(request: NextRequest) {
   try {
-    const activeUser = await getActiveUser();
+    const activeUser = await getActiveUser(request);
     if (!activeUser) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }

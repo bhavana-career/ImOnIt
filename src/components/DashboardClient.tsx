@@ -1791,21 +1791,23 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
             AI Assistant
           </button>
 
-          <button
-            onClick={() => setOpenedHubTab("vault")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all cursor-pointer ${
-              openedHubTab === "vault"
-                ? "bg-primary text-primary-foreground shadow-md shadow-primary/10"
-                : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/50"
-            }`}
-          >
-            {unlockedHubs.includes(openedHub.id) ? (
-              <Unlock className="w-5 h-5 text-emerald-500" />
-            ) : (
-              <Lock className="w-5 h-5" />
-            )}
-            Vault Storage
-          </button>
+          {openedHub.role !== "Member" && (
+            <button
+              onClick={() => setOpenedHubTab("vault")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all cursor-pointer ${
+                openedHubTab === "vault"
+                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/10"
+                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/50"
+              }`}
+            >
+              {unlockedHubs.includes(openedHub.id) ? (
+                <Unlock className="w-5 h-5 text-emerald-500" />
+              ) : (
+                <Lock className="w-5 h-5" />
+              )}
+              Vault Storage
+            </button>
+          )}
 
           <button
             onClick={() => setOpenedHubTab("members")}
@@ -2607,7 +2609,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
               </div>
             )}
             {/* Vault Storage Tab */}
-            {openedHubTab === "vault" && (
+            {openedHubTab === "vault" && openedHub.role !== "Member" && (
               <div className="flex-1 flex flex-col justify-center">
                 {!unlockedHubs.includes(openedHub.id) ? (
                   /* Lock Screen inline prompt */
