@@ -3724,56 +3724,7 @@ export default function DashboardClient({ user, initialMessage, activeAccount }:
                       </div>
                     </div>
 
-                    {/* SECTION 4: PENDING INVITATIONS (Only visible for Owner) */}
-                    {hubMembers.userRole === "owner" && hubMembers.invitations && hubMembers.invitations.length > 0 && (
-                      <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
-                        <h3 className="font-extrabold text-xs text-slate-405 dark:text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                          <Mail className="w-4 h-4 text-slate-500" />
-                          Pending Invitations ({hubMembers.invitations.length})
-                        </h3>
-                        <div className="overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm">
-                          <table className="w-full text-left border-collapse">
-                            <thead>
-                              <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200/60 dark:border-slate-800 text-2xs font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider select-none">
-                                <th className="p-4">Email</th>
-                                <th className="p-4">Sent Date</th>
-                                <th className="p-4">Status</th>
-                                <th className="p-4 text-right">Actions</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {hubMembers.invitations.map((inv) => (
-                                <tr key={inv.id} className="border-b border-slate-100 dark:border-slate-900/50 hover:bg-slate-50/50 dark:hover:bg-slate-900/10 text-xs font-semibold text-slate-700 dark:text-slate-200">
-                                  <td className="p-4 font-mono text-2xs text-slate-700 dark:text-slate-300">{inv.email}</td>
-                                  <td className="p-4 text-slate-500 dark:text-slate-400 font-mono text-2xs">
-                                    {new Date(inv.createdAt).toLocaleDateString()}
-                                  </td>
-                                  <td className="p-4">
-                                    <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-500 border border-blue-500/10 text-3xs font-bold uppercase tracking-wider animate-in fade-in">
-                                      Sent
-                                    </span>
-                                  </td>
-                                  <td className="p-4 text-right space-x-2">
-                                    <button
-                                      onClick={() => handleResendInvite(inv.email)}
-                                      className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold text-2xs transition-all cursor-pointer"
-                                    >
-                                      Resend
-                                    </button>
-                                    <button
-                                      onClick={() => handleRevokeInvite(inv.email)}
-                                      className="px-3 py-1.5 rounded-lg border border-red-500/20 hover:bg-red-500/10 text-red-500 font-bold text-2xs transition-all cursor-pointer"
-                                    >
-                                      Revoke
-                                    </button>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
+
                   </div>
                 )}
               </div>
