@@ -269,6 +269,14 @@ export default function DashboardClient({ user, initialMessage }: DashboardClien
   const [settingsError, setSettingsError] = useState("");
   const [settingsSuccess, setSettingsSuccess] = useState(false);
 
+  // Edit profile states
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editProfileName, setEditProfileName] = useState(user.name);
+  const [editProfileImage, setEditProfileImage] = useState(user.image?.includes("gravatar.com") ? "" : user.image || "");
+  const [updatingProfile, setUpdatingProfile] = useState(false);
+  const [profileError, setProfileError] = useState("");
+  const [profileSuccess, setProfileSuccess] = useState("");
+
   // Deletion States
   const [deleteOtpModalOpen, setDeleteOtpModalOpen] = useState(false);
   const [deleteOtpCode, setDeleteOtpCode] = useState("");
@@ -768,6 +776,38 @@ export default function DashboardClient({ user, initialMessage }: DashboardClien
         }
       }
     });
+  };
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUpdatingProfile(true);
+    setProfileError("");
+    setProfileSuccess("");
+
+    try {
+      const res = await fetch("/api/auth/profile/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editProfileName,
+          image: editProfileImage || null,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setProfileSuccess("Profile updated successfully!");
+        setIsEditingProfile(false);
+        window.location.reload();
+      } else {
+        setProfileError(data.error || "Failed to update profile.");
+      }
+    } catch {
+      setProfileError("Network error. Failed to update profile.");
+    } finally {
+      setUpdatingProfile(false);
+    }
   };
 
   const handleUpdateBranding = async (e: React.FormEvent) => {
@@ -3820,30 +3860,136 @@ export default function DashboardClient({ user, initialMessage }: DashboardClien
             {activeTab === "profile" && (
               <div className="flex-1 flex flex-col gap-6 animate-in fade-in duration-300 max-w-md mx-auto w-full justify-center">
                 <div className="rounded-3xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-950 p-8 flex flex-col items-center text-center shadow-md">
-                  {user.image ? (
-                    <img
-                      src={user.image}
-                      alt={user.name}
-                      className="w-20 h-20 rounded-full border-2 border-slate-105 dark:border-slate-900 mb-4 object-cover"
-                    />
-                  ) : (
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white font-extrabold text-2xl mb-4">
-                      {getInitials(user.name)}
-                    </div>
-                  )}
-                  <h2 className="font-extrabold text-xl text-slate-900 dark:text-white">{user.name}</h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-1 mb-6">{user.email}</p>
+                  {isEditingProfile ? (
+                    <form onSubmit={handleUpdateProfile} className="w-full text-left space-y-4">
+                      <h3 className="font-extrabold text-base text-slate-900 dark:text-white text-center mb-4">Edit Profile</h3>
+                      
+                      {profileError && (
+                        <div className="p-3.5 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-semibold leading-normal">
+                          {profileError}
+                        </div>
+                      )}
 
-                  <div className="w-full border-t border-slate-100 dark:border-slate-900 pt-5 space-y-3.5 text-left text-xs font-semibold">
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400 dark:text-slate-500">Provider</span>
-                      <span className="text-slate-800 dark:text-slate-200 capitalize">{user.authProvider}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400 dark:text-slate-500">Account ID</span>
-                      <span className="text-slate-800 dark:text-slate-200 font-mono text-3xs select-all">{user.id}</span>
-                    </div>
-                  </div>
+                      {/* Image Preview */}
+                      <div className="flex flex-col items-center mb-4">
+                        {editProfileImage ? (
+                          <img
+                            src={editProfileImage}
+                            alt="Preview"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = "none";
+                              const fallback = document.getElementById("preview-fallback");
+                              if (fallback) fallback.style.display = "flex";
+                            }}
+                            onLoad={(e) => {
+                              (e.target as HTMLElement).style.display = "block";
+                              const fallback = document.getElementById("preview-fallback");
+                              if (fallback) fallback.style.display = "none";
+                            }}
+                            className="w-20 h-20 rounded-full border-2 border-slate-100 dark:border-slate-900 object-cover"
+                          />
+                        ) : null}
+                        <div
+                          id="preview-fallback"
+                          style={{ display: editProfileImage ? "none" : "flex" }}
+                          className="w-20 h-20 rounded-full bg-gradient-to-tr from-primary to-accent items-center justify-center text-white font-extrabold text-2xl"
+                        >
+                          {getInitials(editProfileName || user.name)}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-3xs font-extrabold tracking-wider text-slate-400 dark:text-slate-500 uppercase">
+                          Display Name
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={editProfileName}
+                          onChange={(e) => setEditProfileName(e.target.value)}
+                          placeholder="Your Name"
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent text-xs text-slate-900 dark:text-white focus:outline-none focus:border-slate-300 dark:focus:border-slate-700 font-semibold"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-3xs font-extrabold tracking-wider text-slate-400 dark:text-slate-500 uppercase">
+                          Profile Image URL
+                        </label>
+                        <input
+                          type="url"
+                          value={editProfileImage}
+                          onChange={(e) => setEditProfileImage(e.target.value)}
+                          placeholder="https://example.com/avatar.jpg"
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent text-xs text-slate-900 dark:text-white focus:outline-none focus:border-slate-300 dark:focus:border-slate-700 font-semibold font-mono"
+                        />
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 font-semibold leading-normal">
+                          Leave blank to use Gravatar or initials avatar automatically.
+                        </p>
+                      </div>
+
+                      <div className="flex gap-3 pt-3">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsEditingProfile(false);
+                            setEditProfileName(user.name);
+                            setEditProfileImage(user.image?.includes("gravatar.com") ? "" : user.image || "");
+                            setProfileError("");
+                          }}
+                          className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/60 transition-all cursor-pointer text-center"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={updatingProfile || !editProfileName.trim()}
+                          className="flex-1 py-2.5 rounded-xl bg-primary hover:opacity-90 text-white font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                        >
+                          {updatingProfile ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            "Save Changes"
+                          )}
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <>
+                      {user.image ? (
+                        <img
+                          src={user.image}
+                          alt={user.name}
+                          className="w-20 h-20 rounded-full border-2 border-slate-105 dark:border-slate-900 mb-4 object-cover"
+                        />
+                      ) : (
+                        <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white font-extrabold text-2xl mb-4">
+                          {getInitials(user.name)}
+                        </div>
+                      )}
+                      <h2 className="font-extrabold text-xl text-slate-900 dark:text-white">{user.name}</h2>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-1 mb-6">{user.email}</p>
+
+                      <div className="w-full border-t border-slate-100 dark:border-slate-900 pt-5 space-y-3.5 text-left text-xs font-semibold">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400 dark:text-slate-500">Provider</span>
+                          <span className="text-slate-800 dark:text-slate-200 capitalize">{user.authProvider}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400 dark:text-slate-500">Account ID</span>
+                          <span className="text-slate-800 dark:text-slate-200 font-mono text-3xs select-all">{user.id}</span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => setIsEditingProfile(true)}
+                        className="w-full mt-6 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/60 transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+                      >
+                        <Edit className="w-4 h-4" />
+                        Edit Profile
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             )}

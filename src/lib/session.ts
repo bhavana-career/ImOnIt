@@ -40,6 +40,11 @@ export async function getUserAccounts(): Promise<Array<{ email: string; name: st
   }
 }
 
+export function getGravatarUrl(email: string): string {
+  const hash = crypto.createHash("md5").update(email.trim().toLowerCase()).digest("hex");
+  return `https://www.gravatar.com/avatar/${hash}?d=identicon`;
+}
+
 export async function getActiveUser() {
   const activeEmail = await getActiveEmail();
   if (!activeEmail) return null;
@@ -79,7 +84,7 @@ export async function getActiveUser() {
     id: user._id.toString(),
     name: user.name,
     email: user.email,
-    image: user.image,
+    image: user.image || getGravatarUrl(user.email),
     authProvider: user.authProvider || user.provider,
   };
 }
@@ -128,7 +133,7 @@ export async function createSession(userId: string, email: string, name: string,
   let accounts = await getUserAccounts();
   // Remove if email already exists in list
   accounts = accounts.filter((acc) => acc.email !== email);
-  accounts.push({ email, name, image });
+  accounts.push({ email, name, image: image || getGravatarUrl(email) });
   cookieStore.set("user_accounts", JSON.stringify(accounts), {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -213,4 +218,23 @@ export async function clearAllSessions() {
   cookieStore.delete("session_tokens");
   cookieStore.delete("active_email");
   cookieStore.delete("user_accounts");
+}
+
+export async function updateSessionUser(email: string, name: string, image: string | null) {
+  const cookieStore = await cookies();
+  let accounts = await getUserAccounts();
+  
+  accounts = accounts.map((acc) => {
+    if (acc.email.toLowerCase() === email.toLowerCase()) {
+      return { ...acc, name, image: image || getGravatarUrl(email) };
+    }
+    return acc;
+  });
+
+  cookieStore.set("user_accounts", JSON.stringify(accounts), {
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 30 * 24 * 60 * 60,
+  });
 }
