@@ -1,15 +1,15 @@
-# 🚀 I'm On It Bruh — Ideathon Pitch Deck
+#  I'm On It Bruh — Ideathon Pitch Deck
 ### India Runs by Redrob AI | Track 2: Ideathon
 **Submission Deadline: July 2, 2026**
 
 ---
 > **Links to include on cover slide:**
-> - 🌐 Live App: https://im-on-it.vercel.app/
-> - 💻 GitHub: https://github.com/bhavana-career/ImOnIt
+> -  Live App: https://im-on-it.vercel.app/
+> -  GitHub: https://github.com/bhavana-career/ImOnIt
 
 ---
 
-## 📋 SLIDE 4 — Cover / Team Info
+##  SLIDE 4 — Cover / Team Info
 
 | Field | Content |
 |---|---|
@@ -19,16 +19,16 @@
 
 ---
 
-## 📋 SLIDE 5 — Problem Definition
+##  SLIDE 5 — Problem Definition
 
 ### What problem are you solving?
 In India, millions of student teams, startup groups, hackathon teams, and small organizations run on WhatsApp messages and informal meetings. When the meeting ends — **the work doesn't begin**. Tasks are assigned verbally, forgotten by morning, and there is no record that the meeting ever happened.
 
 ### Who experiences this problem?
-- 🎓 **Student project teams** — doing college projects, hackathons, internships
-- 🚀 **Early-stage startups** — with no HR or project management budget
-- 🏫 **Student clubs & committees** — with rotating members and no continuity
-- 🏢 **Small organizations** — that can't afford enterprise tools like Jira or Notion
+-  **Student project teams** — doing college projects, hackathons, internships
+-  **Early-stage startups** — with no HR or project management budget
+-  **Student clubs & committees** — with rotating members and no continuity
+-  **Small organizations** — that can't afford enterprise tools like Jira or Notion
 
 ### Why is the current approach insufficient?
 | Tool | Why it fails |
@@ -42,7 +42,7 @@ In India, millions of student teams, startup groups, hackathon teams, and small 
 
 ---
 
-## 📋 SLIDE 6 — Opportunity & Vision
+##  SLIDE 6 — Opportunity & Vision
 
 ### Why is this an important opportunity?
 - India has **65 million+ knowledge workers** and is adding millions more
@@ -57,7 +57,7 @@ In India, millions of student teams, startup groups, hackathon teams, and small 
 
 ---
 
-## 📋 SLIDE 7 — Solution Overview
+##  SLIDE 7 — Solution Overview
 
 ### What is your proposed solution?
 **I'm On It** is a private AI-powered team collaboration platform where:
@@ -81,9 +81,9 @@ In India, millions of student teams, startup groups, hackathon teams, and small 
 
 ---
 
-## 📋 SLIDE 8 — User Journey / Workflow Diagram
+##  SLIDE 8 — User Journey / Workflow Diagram
 
-> **🖼️ MANDATORY VISUAL — Draw this as a flowchart**
+> ** MANDATORY VISUAL — Draw this as a flowchart**
 
 ```
 [Owner logs in with Google]
@@ -133,7 +133,7 @@ In India, millions of student teams, startup groups, hackathon teams, and small 
 
 ## 📋 SLIDE 9 — AI Logic & Decision Flow
 
-> **🖼️ MANDATORY VISUAL — Draw this as an AI flow diagram**
+> ** MANDATORY VISUAL — Draw this as an AI flow diagram**
 
 ```
 INPUT:
@@ -186,9 +186,9 @@ LAYER 5 — HUMAN-IN-THE-LOOP:
 
 ---
 
-## 📋 SLIDE 10 — System Architecture
+##  SLIDE 10 — System Architecture
 
-> **🖼️ MANDATORY VISUAL — Draw as a system component diagram**
+> ** MANDATORY VISUAL — Draw as a system component diagram**
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -223,9 +223,9 @@ LAYER 5 — HUMAN-IN-THE-LOOP:
 
 ---
 
-## 📋 SLIDE 11 — Data, Context & Intelligence Layer
+##  SLIDE 11 — Data, Context & Intelligence Layer
 
-> **🖼️ MANDATORY VISUAL — Draw as a data flow diagram**
+> ** MANDATORY VISUAL — Draw as a data flow diagram**
 
 ```
 DATA SOURCES:
@@ -273,7 +273,7 @@ DATA SOURCES:
 
 ---
 
-## 📋 SLIDE 12 — Scalability & Technical Feasibility
+##  SLIDE 12 — Scalability & Technical Feasibility
 
 ### How would this be implemented?
 The platform is built with a **modular microservice-friendly architecture**:
@@ -300,20 +300,20 @@ The platform is built with a **modular microservice-friendly architecture**:
 | Deadline timezone differences | Calendar events created in user's local timezone via Google Calendar API |
 
 ### Current Status
-> ✅ Core authentication working
-> ✅ Team creation & member invitation system live
-> ✅ LiveKit meeting integration functional
-> 🔄 AI pipeline (transcript → Gemini analysis) in active development
-> 🔄 Secure storage module in progress
+>  Core authentication working
+>  Team creation & member invitation system live
+>  LiveKit meeting integration functional
+>  AI pipeline (transcript → Gemini analysis) in active development
+>  Secure storage module in progress
 >
-> 🌐 **Live deployment:** https://im-on-it.vercel.app/
-> 💻 **GitHub:** https://github.com/bhavana-career/ImOnIt
+>  **Live deployment:** https://im-on-it.vercel.app/
+>  **GitHub:** https://github.com/bhavana-career/ImOnIt
 
 ---
 
-## 📋 SLIDE 13 — Redrob Ecosystem Integration
+##  SLIDE 13 — Redrob Ecosystem Integration
 
-> **🖼️ MANDATORY VISUAL — Draw as an ecosystem integration diagram**
+> ** MANDATORY VISUAL — Draw as an ecosystem integration diagram**
 
 ### Which existing Redrob capabilities are being leveraged?
 | Redrob Capability | How I'm On It uses it |
@@ -355,7 +355,7 @@ With I'm On It Added:
 
 ---
 
-## 📋 SLIDE 14 — Impact & Success Metrics
+##  SLIDE 14 — Impact & Success Metrics
 
 ### What measurable outcomes are expected?
 
@@ -388,17 +388,17 @@ With I'm On It Added:
 
 ---
 
-## 📋 SLIDE 15 — Future Roadmap
+##  SLIDE 15 — Future Roadmap
 
 ### How could this evolve over 2–3 years?
 
 ```
 PHASE 1 — NOW (2025-2026): Core Platform
-✅ Private team creation & management
-✅ AI meeting transcription & task assignment
-✅ Secure permanent storage
-✅ Email automation & calendar integration
-✅ Task submission & approval workflow
+ Private team creation & management
+ AI meeting transcription & task assignment
+ Secure permanent storage
+ Email automation & calendar integration
+ Task submission & approval workflow
 
 PHASE 2 — 2026-2027: Intelligence Layer
 → Cross-meeting context: AI learns team patterns over time
@@ -423,7 +423,7 @@ It is **India's AI-native operating system for teams** — where meetings become
 
 ---
 
-## 💡 Tips for Presenting Each Slide
+##  Tips for Presenting Each Slide
 
 | Slide | Presentation Tip |
 |---|---|
@@ -438,4 +438,3 @@ It is **India's AI-native operating system for teams** — where meetings become
 
 ---
 
-*Good luck, Bhavana! 🏆 You've got a real shot at this.*
